@@ -118,10 +118,15 @@ func LoadConfig(homeDir string) (config *cfg.Config, err error) {
 
 func NewMetrics(reg prometheus.Registerer) *types.Metrics {
 	m := &types.Metrics{
-		PoolHeight: prometheus.NewGauge(prometheus.GaugeOpts{
+		PoolHeightMain: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: "supervysor",
-			Name:      "pool_height",
+			Name:      "pool_height_main",
 			Help:      "Height of the specified KYVE data pool.",
+		}),
+		PoolHeightTest: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "supervysor",
+			Name:      "pool_height_test",
+			Help:      "Height of the specified KAON data pool.",
 		}),
 		NodeHeight: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: "supervysor",
@@ -144,7 +149,7 @@ func NewMetrics(reg prometheus.Registerer) *types.Metrics {
 			Help:      "Size of data dir in --home dir.",
 		}),
 	}
-	reg.MustRegister(m.PoolHeight, m.NodeHeight, m.MaxHeight, m.MinHeight, m.DataDirSize)
+	reg.MustRegister(m.PoolHeightMain, m.PoolHeightTest, m.NodeHeight, m.MaxHeight, m.MinHeight, m.DataDirSize)
 	return m
 }
 

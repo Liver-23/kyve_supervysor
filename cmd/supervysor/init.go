@@ -18,7 +18,8 @@ import (
 var (
 	abciEndpoint      string
 	binaryPath        string
-	chainId           string
+	chainIdMain       string
+	chainIdTest		  string
 	fallbackEndpoints string
 	homePath          string
 	metrics           bool
@@ -30,9 +31,14 @@ var (
 )
 
 func init() {
-	initCmd.Flags().StringVar(&chainId, "chain-id", "", "KYVE chain-id")
-	if err := initCmd.MarkFlagRequired("chain-id"); err != nil {
-		panic(fmt.Errorf("flag 'chain-id' should be required: %w", err))
+	initCmd.Flags().StringVar(&chainIdMain, "chain-id-main", "kyve-1", "KYVE chain-id")
+	if err := initCmd.MarkFlagRequired("chain-id-main"); err != nil {
+		panic(fmt.Errorf("flag 'chain-id-main' should be required: %w", err))
+	}
+
+	initCmd.Flags().StringVar(&chainIdTest, "chain-id-test", "kaon-1", "KAON chain-id")
+	if err := initCmd.MarkFlagRequired("chain-id-test"); err != nil {
+		panic(fmt.Errorf("flag 'chain-id-test' should be required: %w", err))
 	}
 
 	initCmd.Flags().StringVar(&binaryPath, "binary-path", "", "path to chain binaries or cosmovisor (e.g. /root/go/bin/cosmovisor)")
@@ -83,7 +89,7 @@ func InitializeSupervysor() error {
 		logger.Error("pruning-interval should be higher than 6 hours")
 	}
 
-	if err := settings.InitializeSettings(binaryPath, homePath, poolId, false, seeds, chainId, fallbackEndpoints); err != nil {
+	if err := settings.InitializeSettings(binaryPath, homePath, poolId, false, seeds, chainIdMain, chainIdTest, fallbackEndpoints); err != nil {
 		logger.Error("could not initialize settings", "err", err)
 		return err
 	}
@@ -110,7 +116,8 @@ func InitializeSupervysor() error {
 		config := types.SupervysorConfig{
 			ABCIEndpoint:        abciEndpoint,
 			BinaryPath:          binaryPath,
-			ChainId:             chainId,
+			ChainIdMain:         chainIdMain,
+			ChainIdTest:         chainIdTest,
 			HomePath:            homePath,
 			Interval:            10,
 			Metrics:             metrics,

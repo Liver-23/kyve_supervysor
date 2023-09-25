@@ -81,7 +81,22 @@ var startCmd = &cobra.Command{
 				m.NodeHeight.Set(float64(nodeHeight))
 			}
 
-			poolHeight, err := pool.GetPoolHeight(config.ChainId, config.PoolId, config.FallbackEndpoints)
+			// poolHeight, err := pool.GetPoolHeight(config.ChainId, config.PoolId, config.FallbackEndpoints)
+
+			poolHeightMain, errMain := pool.GetPoolHeight(config.ChainIdMain, config.PoolId, config.FallbackEndpoints)
+			poolHeightTest, errTest := pool.GetPoolHeight(config.ChainIdTest, config.PoolId, config.FallbackEndpoints)
+
+			if errMain != nil || errTest != nil {
+				logger.Error("could not get pool heights", "errMain", errMain, "errTest", errTest)
+				if shutdownErr := e.Shutdown(); shutdownErr != nil {
+					logger.Error("could not shutdown node process", "err", shutdownErr)
+				}
+				return errMain // Or return errTest, or some combined error
+			}
+
+			minPoolHeight := int(math.Min(float64(poolHeightMain), float64(poolHeightTest)))
+			maxPoolHeight := int(math.Max(float64(poolHeightMain), float64(poolHeightTest)))
+
 			if err != nil {
 				logger.Error("could not get pool height", "err", err)
 				if shutdownErr := e.Shutdown(); shutdownErr != nil {
@@ -90,16 +105,17 @@ var startCmd = &cobra.Command{
 				return err
 			}
 			if metrics {
-				m.PoolHeight.Set(float64(poolHeight))
+				m.poolHeightMain.Set(float64(poolHeightMain))
+				m.poolHeightTest.Set(float64(poolHeightTest))
 			}
 
-			logger.Info("fetched heights successfully", "node", nodeHeight, "pool", poolHeight, "max-height", poolHeight+config.HeightDifferenceMax, "min-height", poolHeight+config.HeightDifferenceMin)
+			logger.Info("fetched heights successfully", "node", nodeHeight, "main-pool", PoolHeightMain, "test-pool", PoolHeightTest, "max-height", maxPoolHeight+config.HeightDifferenceMax, "min-height", maxPoolHeight+config.HeightDifferenceMin)
 
 			if config.PruningInterval != 0 {
 				logger.Info("current pruning count", "pruning-count", fmt.Sprintf("%.2f", pruningCount), "pruning-threshold", config.PruningInterval)
 				if pruningCount > float64(config.PruningInterval) && currentMode == "ghost" && nodeHeight > 0 {
-					pruneHeight := poolHeight
-					if nodeHeight < poolHeight {
+					pruneHeight := minPoolHeight
+					if nodeHeight < minPoolHeight {
 						pruneHeight = nodeHeight
 					}
 					logger.Info("pruning blocks after node shutdown", "until-height", pruneHeight)
@@ -114,11 +130,11 @@ var startCmd = &cobra.Command{
 			}
 
 			// Calculate height difference to enable the correct mode.
-			heightDiff := nodeHeight - poolHeight
+			heightDiff := nodeHeight - maxPoolHeight
 
 			if metrics {
-				m.MaxHeight.Set(float64(poolHeight + config.HeightDifferenceMax))
-				m.MinHeight.Set(float64(poolHeight + config.HeightDifferenceMin))
+				m.MaxHeight.Set(float64(maxPoolHeight + config.HeightDifferenceMax))
+				m.MinHeight.Set(float64(maxPoolHeight + config.HeightDifferenceMin))
 			}
 
 			if heightDiff >= config.HeightDifferenceMax {

@@ -9,7 +9,8 @@ import (
 type SupervysorConfig struct {
 	ABCIEndpoint        string
 	BinaryPath          string
-	ChainId             string
+	ChainIdMain         string
+	ChainIdTest         string
 	HomePath            string
 	PoolId              int
 	Seeds               string
@@ -35,7 +36,8 @@ type HeightResponse struct {
 }
 
 type Metrics struct {
-	PoolHeight  prometheus.Gauge
+	PoolHeightMain  prometheus.Gauge
+	PoolHeightTest  prometheus.Gauge
 	NodeHeight  prometheus.Gauge
 	MaxHeight   prometheus.Gauge
 	MinHeight   prometheus.Gauge
